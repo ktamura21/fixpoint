@@ -11,6 +11,7 @@ import pandas as pd
 with open('./sample.txt') as f:
     logs=f.readlines()
 
+
 pattern=re.compile('(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}),(.+/\d+),(.+)')
 failure=dict()  # {(故障中のipアドレス):(故障idまたは0)}のdict
 result=dict()  # {故障id:{ip:ipアドレス, start:故障開始時間, end:故障復旧時間}}のdict
@@ -40,8 +41,8 @@ for log in logs:
     else:
          raise ValueError()
 
-    data=pd.DataFrame.from_dict(result,orient='index')
-    data.to_csv('./output.tsv',sep='\t')
+data=pd.DataFrame.from_dict(result,orient='index')
+data.to_csv('./output.tsv',sep='\t')
 
     
 
