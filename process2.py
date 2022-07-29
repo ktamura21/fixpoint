@@ -31,22 +31,22 @@ for log in logs:
     if resp_time=='-': 
         status[ip]=status.get(ip,0)+1
         # 新たに故障した場合
-        if status.get(ip,0)>=N:
+        if status.get(ip,0)==N:
             failure[ip]=counter
-            result[failure[ip]]={'ip':ip,'start':time,'end':None}
+            result[failure[ip]]={'ip':ip,'start':timeout[ip],'end':None}
             counter+=1
         # 新たにタイムアウトし出した場合
         elif status.get(ip,0)==1:
-            
+            timeout[ip]=time
 
     # 故障していない場合
     elif int(resp_time)>=0:
-        # タイムアウトから復旧した場合
-        if timeout.get(ip,0)!=0:
-            
-            if failure.get(ip,0)!=0:
-                result[failure[ip]]['end']=time
-                failure[ip]=0
+        # 故障から復旧した場合
+        if status.get(ip,0)>=N:
+            result[failure[ip]]['end']=time
+        status[ip]=0
+        timeout[ip]=0
+        failure[ip]=0
 
     else:
          raise ValueError()
