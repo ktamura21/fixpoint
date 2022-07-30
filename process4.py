@@ -26,13 +26,14 @@ pattern2=re.compile('(\d+)\.(\d+)\.(\d+)\.(\d+)')
 
 status=defaultdict(lambda: {'timeout':0, 'timeover':0})  # {(ipアドレス):{timeout:(連続タイムアウト回数),timeover:(連続timeover回数)}のdict
 timeout_start=dict()  # {(ipアドレス):(timeout開始時刻または0)}のdict
-timeover_start=dict()  # {(ipアドレス):(timeover開始時刻または0)}のdict
+# timeover_start=dict()  # {(ipアドレス):(timeover開始時刻または0)}のdict
 failure_ids=dict()  # {(ipアドレス):(故障idまたは0)}のdict
-overload_ids=dict()  # {(ipアドレス):(過負荷idまたは0)}のdict
+# overload_ids=dict()  # {(ipアドレス):(過負荷idまたは0)}のdict
 result=dict()  # {故障id:{status:('failure'または'overload'),ip:(ipアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
 
 network_ip_dict=defaultdict(lambda: set()) # {(ネットワークアドレス):(属するipアドレスのset)}のdict
-failure_network=dict()  # {故障id:{status:('failure'または'overload'),ip:(ipアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
+nwfailure_ids=dict() # {(ネットワークアドレス):(故障idまたは0)}のdict
+result_nw=dict()  # {故障id:{ip:(ネットワークアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
 
 counter=10001
 
@@ -74,8 +75,6 @@ for log in logs:
     year,month,day,hour,min,sec=[int(s) for s in matches[:6]]
     time=datetime(year,month,day,hour,min,sec)
 
-    network_ip_dict[subnet].add(ip)
-
     # timeoutの場合
     if resp_time=='-': 
         status[ip]['timeout']+=1
@@ -87,54 +86,53 @@ for log in logs:
             counter+=1
             # ネットワーク全体が故障しているかの判定
             flag=0
-            for address in network_ip_dict[get_network_ip(ip,subnet_len)]:
+            for address in network_ip_dict[subnet]:
                 if failure_ids.get(address,0)==0: flag=1
             if flag==0:
-                failure_network[failure_ids[ip]]={'ip':ip,'start':time,'end':None}
+                nwfailure_ids[subnet]=failure_ids[ip]
+                result_nw[failure_ids[ip]]={'ip':ip,'start':time,'end':None}
         # 新たにtimeoutし出した場合
         elif status[ip]['timeout']==1:
             timeout_start[ip]=time
 
-    #timeoverの場合
-    elif int(resp_time)>=T:
-        status[ip]['timeout']=0
-        status[ip]['timeover']+=1
-        # 連続timeoverがM回に達した場合
-        if status[ip]['timeover']==M:
-            overload_ids[ip]=counter
-            result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeover_start[ip],'end':None}
-            counter+=1
-        # 新たにtimeoverし出した場合
-        elif status[ip]['timeover']==1:
-            timeover_start[ip]=time
+    # #timeoverの場合
+    # elif int(resp_time)>=T:
+    #     status[ip]['timeout']=0
+    #     status[ip]['timeover']+=1
+    #     # 連続timeoverがM回に達した場合
+    #     if status[ip]['timeover']==M:
+    #         overload_ids[ip]=counter
+    #         result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeover_start[ip],'end':None}
+    #         counter+=1
+    #     # 新たにtimeoverし出した場合
+    #     elif status[ip]['timeover']==1:
+    #         timeover_start[ip]=time
 
     # 正常な場合
     elif int(resp_time)>=0:
         # 故障から復旧した場合
         if status[ip]['timeout']>=N:
             result[failure_ids[ip]]['end']=time
-            # ネットワーク全体が復旧したかの判定
-            flag=0
-            for address in network_ip_dict[get_network_ip(ip,subnet_len)]:
-                if failure_ids.get(address,0)!=0: flag=1
-            if flag==0:
-                failure_network[failure_ids[ip]]['end']=time
-        # 過負荷から復旧した場合
-        if status[ip]['timeover']>=M:
-            result[overload_ids[ip]]['end']=time
-        status.pop(ip,None)
-        timeout_start[ip]=0
-        timeover_start[ip]=0
-        failure_ids[ip]=0
-        overload_ids[ip]=0
+            # ネットワーク全体の故障の場合の処理
+            if nwfailure_ids.get(subnet,0)!=0:
+                result_nw[nwfailure_ids[subnet]]['end']=time
+                nwfailure_ids[subnet]=0
+            
+        # # 過負荷から復旧した場合
+        # if status[ip]['timeover']>=M:
+        #     result[overload_ids[ip]]['end']=time
+        # status.pop(ip,None)
+        # timeout_start[ip]=0
+        # timeover_start[ip]=0
+        # failure_ids[ip]=0
+        # overload_ids[ip]=0
 
     else:
          raise ValueError()
 
 # data=pd.DataFrame.from_dict(result,orient='index')
 # data.to_csv('./output4.tsv',sep='\t')
-failure_network
-
+result_nw
 
 
     

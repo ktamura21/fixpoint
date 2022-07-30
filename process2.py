@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 import pandas as pd
 import os
+import sys
 
 os.chdir(os.path.dirname(__file__))
 
@@ -16,6 +17,8 @@ with open('./sample.txt') as f:
     logs=f.readlines()
 
 N=2
+# N=sys.stdin[1]
+
 
 pattern=re.compile('(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}),(.+/\d+),(.+)')
 status=dict()  # {(ipアドレス):(連続タイムアウト回数)}のdict
@@ -30,7 +33,7 @@ for log in logs:
     year,month,day,hour,min,sec=[int(s) for s in matches[:6]]
     time=datetime(year,month,day,hour,min,sec)
 
-    # 故障の場合
+    # timeoutの場合
     if resp_time=='-': 
         status[ip]=status.get(ip,0)+1
         # 新たに故障した場合
@@ -42,7 +45,7 @@ for log in logs:
         elif status.get(ip,0)==1:
             timeout_start[ip]=time
 
-    # 故障していない場合
+    # timeoutしていない場合
     elif int(resp_time)>=0:
         # 故障から復旧した場合
         if status.get(ip,0)>=N:
