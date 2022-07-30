@@ -9,15 +9,19 @@ from datetime import datetime
 import pandas as pd
 from collections import defaultdict
 import os
+import sys
 
 os.chdir(os.path.dirname(__file__))
 
 with open('./sample.txt') as f:
     logs=f.readlines()
 
-N=2
-M=3
-T=100
+N=sys.stdin[1]
+M=sys.stdin[2]
+T=sys.stdin[3]
+# N=4
+# M=3
+# T=100
 
 pattern=re.compile('(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}),(.+/\d+),(.+)')
 
@@ -39,7 +43,6 @@ for log in logs:
     # timeoutの場合
     if resp_time=='-': 
         status[ip]['timeout']+=1
-        status[ip]['timeover']=0
         # 連続timeoutがN回に達した場合
         if status[ip]['timeout']==N:
             failure_ids[ip]=counter
@@ -51,7 +54,6 @@ for log in logs:
 
     #timeoverの場合
     elif int(resp_time)>=T:
-        status[ip]['timeout']=0
         status[ip]['timeover']+=1
         # 連続timeoverがM回に達した場合
         if status[ip]['timeover']==M:
@@ -61,6 +63,12 @@ for log in logs:
         # 新たにtimeoverし出した場合
         elif status[ip]['timeover']==1:
             timeover_start[ip]=time
+
+        # 故障から復旧した場合
+        if status[ip]['timeout']>=N:
+            result[failure_ids[ip]]['end']=time
+
+        status[ip]['timeout']=0
 
     # 正常な場合
     elif int(resp_time)>=0:

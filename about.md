@@ -77,6 +77,8 @@ tsvの形式で'./output2.tsv'に保存
 ## 概要
 設問2でtimeoutについて行った処理をtimeoverについても行うように変更した。
 
+
+
 ## 主な変数
 - status  
 ipアドレスをkeyに、連続timeout回数と連続timeover回数をvalueにもつdict型変数
@@ -109,4 +111,13 @@ ipアドレスをkeyに、現在過負荷の場合は過負荷IDをvalueに、�
 あるIPアドレスに対して故障が確認された場合に同一ネットワークの故障状態も調べ、全てのIPが故障していた場合に`result_nw`に時刻を記録する(ここまでの設問と異なりN回目のtimeoutを検知した時刻を故障開始時刻とする)
 故障中のネットワークのいずれかのIPアドレスから応答を検知した時刻を故障終了時刻として`result_nw`に記録する
 
+## 主な変数
+- network_ip_dict  
+ネットワークアドレスをkeyに、そのネットワークに属するすべてのIPアドレスのsetをvalueにもつdefault-dict型変数
 
+- nwfailure_ids
+ネットワークアドレスをkeyに、現在ネットワーク故障中の場合は最後に開始した故障の故障IDをvalueに、そうでない場合は0を持つDict型変数
+
+- result_nw
+ネットワーク故障の一覧
+故障IDをkeyに、ipアドレス／故障開始時間／故障復旧時間を記録したDict型変数をvalueにもつDict型変数

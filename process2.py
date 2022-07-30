@@ -16,8 +16,8 @@ os.chdir(os.path.dirname(__file__))
 with open('./sample.txt') as f:
     logs=f.readlines()
 
-N=2
-# N=sys.stdin[1]
+# N=4
+N=sys.stdin[1]
 
 
 pattern=re.compile('(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}),(.+/\d+),(.+)')

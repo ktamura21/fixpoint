@@ -11,24 +11,22 @@ from datetime import datetime
 import pandas as pd
 from collections import defaultdict
 import os
+import sys
 
 os.chdir(os.path.dirname(__file__))
 
 with open('./sample.txt') as f:
     logs=f.readlines()
 
-N=2
-M=3
-T=100
+N=sys.stdin[1]
+# N=4
 
 pattern=re.compile('(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}),(.+)/(\d+),(.+)')
 pattern2=re.compile('(\d+)\.(\d+)\.(\d+)\.(\d+)')
 
 status=defaultdict(lambda: {'timeout':0, 'timeover':0})  # {(ipアドレス):{timeout:(連続タイムアウト回数),timeover:(連続timeover回数)}のdict
 timeout_start=dict()  # {(ipアドレス):(timeout開始時刻または0)}のdict
-# timeover_start=dict()  # {(ipアドレス):(timeover開始時刻または0)}のdict
 failure_ids=dict()  # {(ipアドレス):(故障idまたは0)}のdict
-# overload_ids=dict()  # {(ipアドレス):(過負荷idまたは0)}のdict
 result=dict()  # {故障id:{status:('failure'または'overload'),ip:(ipアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
 
 network_ip_dict=defaultdict(lambda: set()) # {(ネットワークアドレス):(属するipアドレスのset)}のdict
@@ -90,23 +88,10 @@ for log in logs:
                 if failure_ids.get(address,0)==0: flag=1
             if flag==0:
                 nwfailure_ids[subnet]=failure_ids[ip]
-                result_nw[failure_ids[ip]]={'ip':ip,'start':time,'end':None}
+                result_nw[failure_ids[ip]]={'ip':subnet,'start':time,'end':None}
         # 新たにtimeoutし出した場合
         elif status[ip]['timeout']==1:
             timeout_start[ip]=time
-
-    # #timeoverの場合
-    # elif int(resp_time)>=T:
-    #     status[ip]['timeout']=0
-    #     status[ip]['timeover']+=1
-    #     # 連続timeoverがM回に達した場合
-    #     if status[ip]['timeover']==M:
-    #         overload_ids[ip]=counter
-    #         result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeover_start[ip],'end':None}
-    #         counter+=1
-    #     # 新たにtimeoverし出した場合
-    #     elif status[ip]['timeover']==1:
-    #         timeover_start[ip]=time
 
     # 正常な場合
     elif int(resp_time)>=0:
@@ -117,22 +102,12 @@ for log in logs:
             if nwfailure_ids.get(subnet,0)!=0:
                 result_nw[nwfailure_ids[subnet]]['end']=time
                 nwfailure_ids[subnet]=0
-            
-        # # 過負荷から復旧した場合
-        # if status[ip]['timeover']>=M:
-        #     result[overload_ids[ip]]['end']=time
-        # status.pop(ip,None)
-        # timeout_start[ip]=0
-        # timeover_start[ip]=0
-        # failure_ids[ip]=0
-        # overload_ids[ip]=0
 
     else:
          raise ValueError()
 
-# data=pd.DataFrame.from_dict(result,orient='index')
-# data.to_csv('./output4.tsv',sep='\t')
-result_nw
+data=pd.DataFrame.from_dict(result_nw,orient='index')
+data.to_csv('./output4.tsv',sep='\t')
 
 
     
