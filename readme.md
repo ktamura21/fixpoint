@@ -4,6 +4,11 @@
 - エディタ: Visual Studio Code 1.69.2
 - 言語: python 3.10.4
 
+## フォルダの構成
+- process1.py～process4.pyがそれぞれ設問1～4のソースコードです
+- sample.txtが共通のテストデータです。
+- process1.py～process4.pyの出力がそれぞれoutput1.tsv～output4.tsvです。
+
 ## 説明中の用語
 - timeout  
 pingの応答時間が"-"で表される状態のこと
