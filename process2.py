@@ -55,7 +55,7 @@ for log in logs:
          raise ValueError()
 
 data=pd.DataFrame.from_dict(result,orient='index')
-data.to_csv('./output.tsv',sep='\t')
+data.to_csv('./output2.tsv',sep='\t')
 
     
 
