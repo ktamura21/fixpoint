@@ -56,7 +56,7 @@ for log in logs:
         # 連続timeoverがM回に達した場合
         if status[ip]['timeover']==M:
             overload_ids[ip]=counter
-            result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeout_start[ip],'end':None}
+            result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeover_start[ip],'end':None}
             counter+=1
         # 新たにtimeoverし出した場合
         elif status[ip]['timeover']==1:

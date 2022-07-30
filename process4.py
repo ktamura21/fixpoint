@@ -5,6 +5,7 @@
 # そのサブネット（のスイッチ）の故障とみなそう。
 # 設問2または3のプログラムを拡張して、各サブネット毎にネットワークの故障期間を出力できるようにせよ。
 
+from ipaddress import ip_address
 import re
 from datetime import datetime
 import pandas as pd
@@ -29,6 +30,10 @@ timeover_start=dict()  # {(ipアドレス):(timeover開始時刻または0)}のd
 failure_ids=dict()  # {(ipアドレス):(故障idまたは0)}のdict
 overload_ids=dict()  # {(ipアドレス):(過負荷idまたは0)}のdict
 result=dict()  # {故障id:{status:('failure'または'overload'),ip:(ipアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
+
+network_ip_dict=defaultdict(lambda: set()) # {(ネットワークアドレス):(属するipアドレスのset)}のdict
+failure_network=dict()  # {故障id:{status:('failure'または'overload'),ip:(ipアドレス),start:(故障開始時間), end:(故障復旧時間)}}のdict
+
 counter=10001
 
 # ipアドレスとネットワークプレフィックス長からネットワークアドレスを返す関数
@@ -41,7 +46,7 @@ def get_network_ip(ip,subnet_len):
 
     subnet_num=0
     for i in range(32):
-        subnet_num+=int(i<subnet)
+        subnet_num+=int(i<subnet_len)
         subnet_num=subnet_num<<1
 
     temp=ip_num & subnet_num
@@ -52,6 +57,14 @@ def get_network_ip(ip,subnet_len):
 
     return(f'{str(network_ip[3])}.{str(network_ip[2])}.{str(network_ip[1])}.{str(network_ip[0])}')
 
+# ipアドレスの一覧の作成
+for log in logs:
+    matches=pattern.match(log).groups()
+    ip,subnet_len,resp_time=matches[6:]
+    subnet_len=int(subnet_len)
+    subnet=get_network_ip(ip,subnet_len) # ipアドレスのネットワーク部
+
+    network_ip_dict[subnet].add(ip)
 
 for log in logs:
     matches=pattern.match(log).groups()
@@ -60,6 +73,8 @@ for log in logs:
     subnet=get_network_ip(ip,subnet_len) # ipアドレスのネットワーク部
     year,month,day,hour,min,sec=[int(s) for s in matches[:6]]
     time=datetime(year,month,day,hour,min,sec)
+
+    network_ip_dict[subnet].add(ip)
 
     # timeoutの場合
     if resp_time=='-': 
@@ -70,6 +85,12 @@ for log in logs:
             failure_ids[ip]=counter
             result[failure_ids[ip]]={'ip':ip,'status':'failure','start':timeout_start[ip],'end':None}
             counter+=1
+            # ネットワーク全体が故障しているかの判定
+            flag=0
+            for address in network_ip_dict[get_network_ip(ip,subnet_len)]:
+                if failure_ids.get(address,0)==0: flag=1
+            if flag==0:
+                failure_network[failure_ids[ip]]={'ip':ip,'start':time,'end':None}
         # 新たにtimeoutし出した場合
         elif status[ip]['timeout']==1:
             timeout_start[ip]=time
@@ -81,7 +102,7 @@ for log in logs:
         # 連続timeoverがM回に達した場合
         if status[ip]['timeover']==M:
             overload_ids[ip]=counter
-            result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeout_start[ip],'end':None}
+            result[overload_ids[ip]]={'ip':ip,'status':'overload','start':timeover_start[ip],'end':None}
             counter+=1
         # 新たにtimeoverし出した場合
         elif status[ip]['timeover']==1:
@@ -92,6 +113,12 @@ for log in logs:
         # 故障から復旧した場合
         if status[ip]['timeout']>=N:
             result[failure_ids[ip]]['end']=time
+            # ネットワーク全体が復旧したかの判定
+            flag=0
+            for address in network_ip_dict[get_network_ip(ip,subnet_len)]:
+                if failure_ids.get(address,0)!=0: flag=1
+            if flag==0:
+                failure_network[failure_ids[ip]]['end']=time
         # 過負荷から復旧した場合
         if status[ip]['timeover']>=M:
             result[overload_ids[ip]]['end']=time
@@ -104,8 +131,11 @@ for log in logs:
     else:
          raise ValueError()
 
-data=pd.DataFrame.from_dict(result,orient='index')
-data.to_csv('./output4.tsv',sep='\t')
+# data=pd.DataFrame.from_dict(result,orient='index')
+# data.to_csv('./output4.tsv',sep='\t')
+failure_network
+
+
 
     
 
